@@ -4,6 +4,7 @@ const siteNav = document.querySelector('.site-nav');
 if (navToggle && siteNav) {
   navToggle.addEventListener('click', () => {
     const isOpen = siteNav.classList.toggle('open');
+
     navToggle.setAttribute('aria-expanded', String(isOpen));
     navToggle.setAttribute(
       'aria-label',
@@ -20,11 +21,14 @@ if (navToggle && siteNav) {
   });
 }
 
+// Current year in footer
 const year = document.getElementById('year');
+
 if (year) {
   year.textContent = new Date().getFullYear();
 }
 
+// Scroll reveal animations
 const reduceMotion = window.matchMedia(
   '(prefers-reduced-motion: reduce)'
 ).matches;
@@ -49,26 +53,71 @@ if (reduceMotion || !('IntersectionObserver' in window)) {
   reveals.forEach((item) => observer.observe(item));
 }
 
-const formNext = document.getElementById('form-next');
+// Contact form
+const contactForm = document.querySelector('.contact-form');
 
-if (formNext) {
-  formNext.value =
-    `${window.location.origin}${window.location.pathname}?sent=1#contact`;
-}
+if (contactForm) {
+  contactForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
 
-const params = new URLSearchParams(window.location.search);
-const formStatus = document.getElementById('form-status');
+    const submitButton = contactForm.querySelector('.form-submit');
+    const status = document.getElementById('form-status');
 
-if (params.get('sent') === '1' && formStatus) {
-  formStatus.textContent =
-    'Thanks — your message has been sent. Keith will get back to you soon.';
+    if (submitButton) {
+      submitButton.disabled = true;
+      submitButton.textContent = 'Sending...';
+    }
 
-  formStatus.classList.add('visible');
+    if (status) {
+      status.textContent = '';
+      status.classList.remove('visible');
+    }
 
-  if (window.history.replaceState) {
-    const cleanUrl =
-      `${window.location.pathname}${window.location.hash || '#contact'}`;
+    const formData = new FormData(contactForm);
 
-    window.history.replaceState({}, document.title, cleanUrl);
-  }
+    const data = {};
+
+    formData.forEach((value, key) => {
+      data[key] = value;
+    });
+
+    try {
+      const response = await fetch(
+        'https://formsubmit.co/ajax/Keith.LeMontang@gmail.com',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify(data)
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Submission failed');
+      }
+
+      if (status) {
+        status.textContent =
+          'Thanks — your message has been sent. Keith will get back to you soon.';
+        status.classList.add('visible');
+      }
+
+      contactForm.reset();
+
+    } catch (error) {
+      if (status) {
+        status.textContent =
+          'Something went wrong. Please try again or email Keith directly at Keith.LeMontang@gmail.com.';
+        status.classList.add('visible');
+      }
+
+    } finally {
+      if (submitButton) {
+        submitButton.disabled = false;
+        submitButton.textContent = 'Send Message';
+      }
+    }
+  });
 }
